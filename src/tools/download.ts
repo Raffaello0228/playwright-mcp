@@ -42,49 +42,51 @@ const download: ToolFactory = captureSnapshot => ({
       downloadPath = validatedParams.saveToFolder;
     }
     
-    let downloadPromise;
-    
     return await tab.runAndWait(async tab => {
       const page = tab.page;
       
-      // Set up download handler before clicking
+      // 如果指定了下载路径，配置浏览器下载到指定文件夹
       if (downloadPath) {
-        // Configure browser to download to the specified folder
         await page.context().setDefaultDownloadPath(downloadPath);
       }
       
-      // Create a promise that resolves when download starts
-      downloadPromise = page.waitForEvent('download');
+      // 使用Playwright推荐的方式等待下载
+      // 在JavaScript中，我们需要在点击前创建下载Promise
+      const downloadPromise = page.waitForEvent('download');
       
-      // Click the download link
+      // 点击下载链接
       const locator = validatedParams.selector.startsWith('[ref=') 
         ? tab.lastSnapshot().refLocator(validatedParams.selector.slice(5, -1))
         : page.locator(validatedParams.selector);
-        
+      
       await locator.click();
       
-      // Wait for download to start
+      // 等待下载开始并获取下载对象
       const download = await downloadPromise;
       
-      // Rename file if needed
+      // 获取建议的文件名
+      const suggestedFilename = await download.suggestedFilename();
+      
+      // 构建保存路径
+      let savePath: string;
+      
+      // 如果提供了新文件名，使用新文件名
       if (validatedParams.newFilename) {
-        const suggestedFilename = await download.suggestedFilename();
         const fileExt = path.extname(suggestedFilename);
         const newFilename = validatedParams.newFilename + (validatedParams.newFilename.endsWith(fileExt) ? '' : fileExt);
-        
-        // Save with new filename
-        await download.saveAs(path.join(downloadPath || '', newFilename));
+        savePath = path.join(downloadPath || '', newFilename);
       } else {
-        // Save with original filename
-        await download.saveAs(path.join(downloadPath || '', await download.suggestedFilename()));
+        // 否则使用原始文件名
+        savePath = path.join(downloadPath || '', suggestedFilename);
       }
       
-      // Wait for download to complete
-      await download.path();
+      // 保存文件
+      await download.saveAs(savePath);
       
-      // 不返回任何内容，保持返回类型为void
+      // 等待下载完成
+      await download.path();
     }, {
-      status: `已从 ${validatedParams.selector} 下载文件`,
+      status: `已从 ${validatedParams.selector} 下载文件，保存为: ${validatedParams.newFilename || '原始文件名'}`,
       captureSnapshot,
     });
   },
