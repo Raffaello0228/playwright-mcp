@@ -323,3 +323,39 @@ server.connect(transport);
 - **browser_install**
   - Description: Install the browser specified in the config. Call this if you get an error about the browser not being installed.
   - Parameters: None
+
+## 下载功能
+
+PlaywrightMCP现在支持点击下载功能，允许您在网页上点击下载链接并保存文件。
+
+### 使用browser_download工具
+
+此工具允许您点击网页上的下载链接，并可以指定保存位置和自定义文件名。
+
+#### 参数
+
+- `selector`：必需。下载链接的CSS选择器或aria-ref。
+- `saveToFolder`：可选。保存下载文件的文件夹路径。如果未指定，文件将保存到浏览器的默认下载位置。
+- `newFilename`：可选。下载文件的新文件名。如果未指定，将使用原始文件名。
+
+#### 示例
+
+```javascript
+// 使用CSS选择器点击下载链接并使用默认保存位置
+await browser_download({
+  selector: '#download-button'
+});
+
+// 使用aria-ref属性点击下载链接并指定保存位置
+await browser_download({
+  selector: '[ref=abc123]',
+  saveToFolder: '/path/to/downloads'
+});
+
+// 点击下载链接，指定保存位置并重命名文件
+await browser_download({
+  selector: '.download-link',
+  saveToFolder: '/path/to/downloads',
+  newFilename: 'custom-filename'
+});
+```
